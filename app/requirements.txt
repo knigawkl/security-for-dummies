@@ -9,7 +9,6 @@ Click==7.0
 Flask==1.1.1
 Flask-Login==0.4.1
 Flask-Markdown==0.3
-Flask-MySQLdb==0.2.0
 Flask-Session==0.3.1
 Flask-Simple-GeoIP==0.1.1
 Flask-SQLAlchemy==2.4.1
@@ -22,8 +21,6 @@ lazy-object-proxy==1.4.3
 Markdown==3.1.1
 MarkupSafe==1.1.1
 mccabe==0.6.1
-mysqlclient==1.4.6
-psycopg2-binary==2.8.4
 pycodestyle==2.5.0
 pycparser==2.19
 pylint==2.4.4
@@ -37,4 +34,4 @@ typed-ast==1.4.0
 urllib3==1.25.7
 Werkzeug==0.16.0
 wrapt==1.11.2
-WTForms==2.2.1
+jwt
