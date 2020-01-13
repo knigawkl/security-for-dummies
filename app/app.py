@@ -1,5 +1,6 @@
 import datetime
 import re
+import uuid
 import redis
 import bcrypt
 import jwt
@@ -16,17 +17,14 @@ def login():
     msg = ''
     if request.method == 'POST' and 'username' in request.form and 'password' in request.form:
         username, password = request.form['username'], request.form['password']
-        if username == 'test' and password == 'test':
-            msg = 'Authorization OK'
+        if bcrypt.checkpw(password.encode('utf8'), db.hget(username, 'password').encode('utf8')):
+            session['loggedin'] = True
+            session['id'] = db.hget(username, 'id')
+            session['username'] = db.hget(username, 'login')
+            msg = 'Logged in successfully!'
             return render_template('index.html', msg=msg)
-        '''
-        if bcrypt.checkpw(password.encode('utf8'), db.hget(login, 'password').encode('utf8')):
-            token = jwt.encode({'user': username,
-                                'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=50)},
-                               app.config['SECRET_KEY'])
-            return jsonify({'token': token.decode('UTF-8')})
-        '''
-        msg = 'Authorization failed'
+        else:
+            msg = 'Incorrect username/password!'
     return render_template('index.html', msg=msg)
 
 
@@ -34,8 +32,22 @@ def login():
 def register():
     msg = ''
     if request.method == 'POST' and 'username' in request.form and 'password' in request.form and 'email' in request.form:
-        username, password, email = request.form['username'], request.form['password'], email = request.form['email']
+        username, password, email = request.form['username'], request.form['password'], request.form['email']
+        if username and db.hget(username, 'username') == username:
+            msg = 'Login unavailable'
+            return render_template('register.html', msg=msg)
+        else:
+            salt = bcrypt.gensalt()
+            hashed = bcrypt.hashpw(password.encode('utf8'), salt)
+            hashed = hashed.decode("utf-8")
 
+            db.hset(username, 'username', username)
+            db.hset(username, 'password', hashed)
+            db.hset(username, 'email', email)
+            db.hset(username, 'id', uuid.uuid1())
+
+            msg = 'Account created, please log in'
+            return render_template('index.html', msg=msg)
     elif request.method == 'POST':
         msg = 'Please fill out the form!'
     return render_template('register.html', msg=msg)
