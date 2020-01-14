@@ -72,8 +72,8 @@ def home():
 @app.route('/profile/')
 def profile():
     if 'loggedin' in session:
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-        cursor.execute('SELECT * FROM accounts WHERE id = %s', [session['id']])
-        account = cursor.fetchone()
+        username = session['username']
+        email = db.hget(username, 'email')
+        account = {'username': username, 'email': email}
         return render_template('profile.html', account=account)
     return redirect(url_for('login'))
