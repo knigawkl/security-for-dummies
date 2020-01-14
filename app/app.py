@@ -1,15 +1,17 @@
-import datetime
-import re
 import uuid
 import redis
 import bcrypt
-import jwt
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, make_response
 
 app = Flask(__name__)
 app.secret_key = 'bvoeqwghfelwhfjoilw'
 db = redis.Redis(host='redis', port=6379, decode_responses=True)
 db.flushdb()  # uncomment in order to flush the database
+
+
+@app.route('/')
+def index():
+    return redirect(url_for('login'))
 
 
 @app.route('/login/', methods=['GET', 'POST'])
@@ -20,15 +22,14 @@ def login():
         if bcrypt.checkpw(password.encode('utf8'), db.hget(username, 'password').encode('utf8')):
             session['loggedin'] = True
             session['id'] = db.hget(username, 'id')
-            session['username'] = db.hget(username, 'login')
-            msg = 'Logged in successfully!'
-            return render_template('index.html', msg=msg)
+            session['username'] = db.hget(username, 'username')
+            return redirect(url_for('home'))
         else:
             msg = 'Incorrect username/password!'
     return render_template('index.html', msg=msg)
 
 
-@app.route('/register', methods=['GET', 'POST'])
+@app.route('/register/', methods=['GET', 'POST'])
 def register():
     msg = ''
     if request.method == 'POST' and 'username' in request.form and 'password' in request.form and 'email' in request.form:
@@ -44,7 +45,7 @@ def register():
             db.hset(username, 'username', username)
             db.hset(username, 'password', hashed)
             db.hset(username, 'email', email)
-            db.hset(username, 'id', uuid.uuid1())
+            db.hset(username, 'id', str(uuid.uuid1()))
 
             msg = 'Account created, please log in'
             return render_template('index.html', msg=msg)
@@ -53,7 +54,7 @@ def register():
     return render_template('register.html', msg=msg)
 
 
-@app.route('/logout')
+@app.route('/logout/')
 def logout():
     session.pop('loggedin', None)
     session.pop('id', None)
@@ -61,14 +62,14 @@ def logout():
     return redirect(url_for('login'))
 
 
-@app.route('/home')
+@app.route('/home/')
 def home():
     if 'loggedin' in session:
         return render_template('home.html', username=session['username'])
     return redirect(url_for('login'))
 
 
-@app.route('/profile')
+@app.route('/profile/')
 def profile():
     if 'loggedin' in session:
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
