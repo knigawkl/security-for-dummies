@@ -2,6 +2,7 @@ import uuid
 import redis
 import bcrypt
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, make_response
+from password_strength import PasswordPolicy
 
 app = Flask(__name__)
 app.secret_key = 'bvoeqwghfelwhfjoilw'
@@ -29,16 +30,32 @@ def login():
     return render_template('index.html', msg=msg)
 
 
+policy = PasswordPolicy.from_names(
+    length=8,  # min length: 8
+    uppercase=1,  # need min. 2 uppercase letters
+    numbers=2,  # need min. 2 digits
+    special=2,  # need min. 2 special characters
+)
+
+
 @app.route('/register/', methods=['GET', 'POST'])
 def register():
     msg = ''
-    if request.method == 'POST' and 'username' in request.form and 'password' in request.form and 'email' in request.form:
+    if request.method == 'POST' and 'username' in request.form \
+            and 'password' in request.form and 'email' in request.form:
         username, password, email = request.form['username'], request.form['password'], request.form['email']
+        repassword = request.form['repassword']
+        if password != repassword:
+            msg = f'Passwords do not match'
+            return render_template('register.html', msg=msg)
+        if len(policy.test(password)) > 0:
+            msg = f'Password too weak, it has to meet the unmet minimum requirements: {policy.test(password)}'
+            return render_template('register.html', msg=msg)
         if username and db.hget(username, 'username') == username:
             msg = 'Login unavailable'
             return render_template('register.html', msg=msg)
         else:
-            salt = bcrypt.gensalt()
+            salt = bcrypt.gensalt(15)  # the actual number of hashing rounds is math.pow(2, rounds)
             hashed = bcrypt.hashpw(password.encode('utf8'), salt)
             hashed = hashed.decode("utf-8")
 
