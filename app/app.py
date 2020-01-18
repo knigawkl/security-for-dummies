@@ -1,4 +1,5 @@
 import math
+import re
 import string
 import uuid
 import redis
@@ -23,6 +24,9 @@ def login():
     msg = ''
     if request.method == 'POST' and 'username' in request.form and 'password' in request.form:
         username, password = request.form['username'], request.form['password']
+        if username and not db.exists(username):
+            msg = 'Login does not exist'
+            return render_template('index.html', msg=msg)
         if bcrypt.checkpw(password.encode('utf8'), db.hget(username, 'password').encode('utf8')):
             session['loggedin'] = True
             session['id'] = db.hget(username, 'id')
@@ -53,6 +57,9 @@ def register():
             and 'password' in request.form and 'email' in request.form:
         username, password, email = request.form['username'], request.form['password'], request.form['email']
         repassword = request.form['repassword']
+        if not re.match('^[a-zA-Z0-9_]{3,15}$', username):
+            msg = f'Login can contain only letters (lowercase/uppercase) and digits and its length must be 3-15 signs'
+            return render_template('register.html', msg=msg)
         if password != repassword:
             msg = f'Passwords do not match'
             return render_template('register.html', msg=msg)
@@ -109,3 +116,42 @@ def profile():
         account = {'username': username, 'email': email}
         return render_template('profile.html', account=account)
     return redirect(url_for('login'))
+
+
+@app.route('/password/', methods=['GET', 'POST'])
+def password():
+    msg = ''
+    if request.method == 'POST' and 'username' in request.form and 'oldpassword' in request.form \
+            and 'password' in request.form and 'repassword' in request.form:
+        username, password = request.form['username'], request.form['password']
+        oldpassword, repassword = request.form['oldpassword'], request.form['repassword']
+        if username and not db.exists(username):
+            msg = 'Login does not exist'
+            return render_template('password.html', msg=msg)
+        if bcrypt.checkpw(oldpassword.encode('utf8'), db.hget(username, 'password').encode('utf8')):
+            if password != repassword:
+                msg = f'Passwords do not match'
+                return render_template('password.html', msg=msg)
+            if len(policy.test(password)) > 0:
+                msg = f'Password too weak, it has to meet the unmet minimum requirements: {policy.test(password)}'
+                entropy = calc_entropy(password)
+                msg += f' Current password entropy: {"%.2f" % entropy}'
+                return render_template('password.html', msg=msg)
+            if calc_entropy(password) < 40:
+                entropy = calc_entropy(password)
+                msg = f' Current password entropy: {"%.2f" % entropy}.'
+                msg += f'Minimum: 40'
+                return render_template('password.html', msg=msg)
+            else:
+                salt = bcrypt.gensalt(15)  # the actual number of hashing rounds is math.pow(2, rounds)
+                hashed = bcrypt.hashpw(password.encode('utf8'), salt)
+                hashed = hashed.decode("utf-8")
+
+                db.hset(username, 'password', hashed)
+
+                msg = 'Account created, please log in'
+                return render_template('index.html', msg=msg)
+        else:
+            time.sleep(3)
+            msg = 'Incorrect old password'
+    return render_template('password.html', msg=msg)
