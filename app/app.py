@@ -1,6 +1,9 @@
+import math
+import string
 import uuid
 import redis
 import bcrypt
+import time
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, make_response
 from password_strength import PasswordPolicy
 
@@ -26,6 +29,7 @@ def login():
             session['username'] = db.hget(username, 'username')
             return redirect(url_for('home'))
         else:
+            time.sleep(3)
             msg = 'Incorrect username/password!'
     return render_template('index.html', msg=msg)
 
@@ -36,6 +40,10 @@ policy = PasswordPolicy.from_names(
     numbers=2,  # need min. 2 digits
     special=2,  # need min. 2 special characters
 )
+
+
+def calc_entropy(password):
+    return len(password) * (math.log(len(string.ascii_lowercase), 2))
 
 
 @app.route('/register/', methods=['GET', 'POST'])
@@ -50,6 +58,13 @@ def register():
             return render_template('register.html', msg=msg)
         if len(policy.test(password)) > 0:
             msg = f'Password too weak, it has to meet the unmet minimum requirements: {policy.test(password)}'
+            entropy = calc_entropy(password)
+            msg += f' Current password entropy: {"%.2f" % entropy}'
+            return render_template('register.html', msg=msg)
+        if calc_entropy(password) < 40:
+            entropy = calc_entropy(password)
+            msg = f' Current password entropy: {"%.2f" % entropy}.'
+            msg += f'Minimum: 40'
             return render_template('register.html', msg=msg)
         if username and db.hget(username, 'username') == username:
             msg = 'Login unavailable'
