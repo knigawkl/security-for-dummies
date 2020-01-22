@@ -149,7 +149,7 @@ def password():
 
                 db.hset(username, 'password', hashed)
 
-                msg = 'Account created, please log in'
+                msg = 'Password has been changed'
                 return render_template('index.html', msg=msg)
         else:
             time.sleep(3)
