@@ -11,7 +11,7 @@ from password_strength import PasswordPolicy
 app = Flask(__name__)
 app.secret_key = 'bvoeqwghfelwhfjoilw'
 db = redis.Redis(host='redis', port=6379, decode_responses=True)
-db.flushdb()  # uncomment in order to flush the database
+# db.flushdb()  # uncomment in order to flush the database
 
 
 @app.route('/')
@@ -54,7 +54,7 @@ def calc_entropy(password):
 def register():
     msg = ''
     if request.method == 'POST' and 'username' in request.form \
-            and 'password' in request.form and 'email' in request.form:
+            and 'password' in request.form and 'repassword' in request.form and 'email' in request.form:
         username, password, email = request.form['username'], request.form['password'], request.form['email']
         repassword = request.form['repassword']
         if not re.match('^[a-zA-Z0-9_]{3,15}$', username):
@@ -101,10 +101,14 @@ def logout():
     return redirect(url_for('login'))
 
 
-@app.route('/home/')
+@app.route('/home/', methods=['GET', 'POST'])
 def home():
+    msg = ''
     if 'loggedin' in session:
-        return render_template('home.html', username=session['username'])
+        if request.method == 'POST' and 'note' in request.form and 'receivers' in request.form:
+            note, receivers = request.form['note'], request.form['receivers']
+            return render_template('home.html', username=session['username'], msg=note)
+        return render_template('home.html', username=session['username'], msg=msg)
     return redirect(url_for('login'))
 
 

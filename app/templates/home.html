@@ -4,5 +4,18 @@
 
 {% block content %}
 <h2>Notes</h2>
-<p>Welcome back, {{ username }}! Here are the notes shared with you.</p>
+<p>Welcome back, {{ username }}! Below are the notes shared with you.</p>
+<form action="{{ url_for('home') }}" method="post" style="border-style: dotted">
+    <br>
+    <label for="note"><i>What do you want to note? (Up to 200 characters)</i></label>
+    <br>
+    <input type="text" name="note" placeholder="Add a new note here..." id="note" maxlength="200" required onkeypress="this.style.width = ((this.value.length + 1) * 8) + 'px';" style="max-width: 1800px">
+    <br>
+    <label for="receivers"><i>Add receivers' usernames, separated by commas; * for everyone</i></label>
+    <br>
+    <input type="text" name="receivers" placeholder="Add receivers' usernames..." id="receivers" required onkeypress="this.style.width = ((this.value.length + 1) * 8) + 'px';" style="max-width: 1800px">
+    <br>
+	<input type="submit" value="Add note">
+</form>
+<div class="msg">{{ msg }}</div>
 {% endblock %}
