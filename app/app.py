@@ -11,7 +11,7 @@ from password_strength import PasswordPolicy
 app = Flask(__name__)
 app.secret_key = 'bvoeqwghfelwhfjoilw'
 db = redis.Redis(host='redis', port=6379, decode_responses=True)
-# db.flushdb()  # uncomment in order to flush the database
+db.flushdb()  # uncomment in order to flush the database
 
 
 @app.route('/')
@@ -81,10 +81,12 @@ def register():
             hashed = bcrypt.hashpw(password.encode('utf8'), salt)
             hashed = hashed.decode("utf-8")
 
+            id = str(uuid.uuid1())
             db.hset(username, 'username', username)
             db.hset(username, 'password', hashed)
             db.hset(username, 'email', email)
-            db.hset(username, 'id', str(uuid.uuid1()))
+            db.hset(username, 'id', id)
+            db.sadd('users', username)
 
             msg = 'Account created, please log in'
             return render_template('index.html', msg=msg)
@@ -104,12 +106,56 @@ def logout():
 @app.route('/home/', methods=['GET', 'POST'])
 def home():
     msg = ''
+    notes = get_notes()
     if 'loggedin' in session:
         if request.method == 'POST' and 'note' in request.form and 'receivers' in request.form:
             note, receivers = request.form['note'], request.form['receivers']
-            return render_template('home.html', username=session['username'], msg=note)
-        return render_template('home.html', username=session['username'], msg=msg)
+            if receivers != '*':
+                try:
+                    receivers = receivers.split(',')
+                except:
+                    msg = "Invalid receivers' usernames"
+                    return render_template('home.html', username=session['username'], notes=notes, msg=msg)
+
+                if len(receivers) > 10:
+                    msg = "Too many receivers. Up to 10 or everyone (*)!"
+                    return render_template('home.html', username=session['username'], notes=notes, msg=msg)
+
+                receivers = set(receivers)
+                users = db.smembers('users')
+                if not receivers.issubset(users):
+                    msg = "Invalid receivers' usernames"
+                    return render_template('home.html', username=session['username'], notes=notes, msg=msg)
+
+                receivers = ','.join(map(str, receivers))
+
+            id = str(uuid.uuid1())
+            db.hset(id, 'id', id)
+            db.hset(id, 'note', note)
+            db.hset(id, 'receivers', receivers)
+            db.hset(id, 'author', session['username'])
+            db.sadd('notes', id)
+            notes = get_notes()
+            return render_template('home.html', username=session['username'], notes=notes, msg=msg)
+        notes = get_notes()
+        return render_template('home.html', username=session['username'], notes=notes, msg=msg)
     return redirect(url_for('login'))
+
+
+def get_notes():
+    notes = []
+    user = session['username']
+    db_resp = db.smembers('notes')
+    for id in db_resp:
+        receivers = db.hget(id, 'receivers')
+        if receivers == '*':
+            notes.append(db.hget(id, 'note'))
+        else:
+            receivers = receivers.split(',')
+            if user in receivers:
+                #notes.append(db.hget(id, 'note'))
+                notes.append({'note': db.hget(id, 'note'), 'author': db.hget(id, 'author')})
+    return notes
 
 
 @app.route('/profile/')

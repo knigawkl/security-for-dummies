@@ -16,6 +16,11 @@
     <input type="text" name="receivers" placeholder="Add receivers' usernames..." id="receivers" required onkeypress="this.style.width = ((this.value.length + 1) * 8) + 'px';" style="max-width: 1800px">
     <br>
 	<input type="submit" value="Add note">
+    <div class="msg">{{ msg }}</div>
 </form>
-<div class="msg">{{ msg }}</div>
+<ul>
+{% for note in notes %}
+    <li>{{ note }}</li>
+{% endfor %}
+</ul>
 {% endblock %}
