@@ -11,6 +11,8 @@ from password_strength import PasswordPolicy
 app = Flask(__name__)
 app.secret_key = 'bvoeqwghfelwhfjoilw'
 db = redis.Redis(host='redis', port=6379, decode_responses=True)
+
+
 db.flushdb()  # uncomment in order to flush the database
 
 
@@ -112,7 +114,7 @@ def home():
             note, receivers = request.form['note'], request.form['receivers']
             if receivers != '*':
                 try:
-                    receivers = receivers.split(',')
+                    receivers = receivers.split(', ')
                 except:
                     msg = "Invalid receivers' usernames"
                     return render_template('home.html', username=session['username'], notes=notes, msg=msg)
@@ -121,13 +123,17 @@ def home():
                     msg = "Too many receivers. Up to 10 or everyone (*)!"
                     return render_template('home.html', username=session['username'], notes=notes, msg=msg)
 
-                receivers = set(receivers)
-                users = db.smembers('users')
-                if not receivers.issubset(users):
-                    msg = "Invalid receivers' usernames"
+                users = list(db.smembers('users'))
+
+                if not set(receivers).issubset(users):
+                    msg = f"Not all given usernames are valid: {receivers}"
                     return render_template('home.html', username=session['username'], notes=notes, msg=msg)
 
                 receivers = ','.join(map(str, receivers))
+
+            if not re.match('^[a-zA-Z0-9 ]{1,200}$', note):
+                msg = 'Invalid note! You can only use letters, digits and spaces.'
+                return render_template('register.html', msg=msg)
 
             id = str(uuid.uuid1())
             db.hset(id, 'id', id)
