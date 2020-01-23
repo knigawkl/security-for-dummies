@@ -13,7 +13,7 @@ app.secret_key = 'bvoeqwghfelwhfjoilw'
 db = redis.Redis(host='redis', port=6379, decode_responses=True)
 
 
-# db.flushdb()  # uncomment in order to flush the database
+db.flushdb()  # uncomment in order to flush the database
 
 
 @app.route('/')
@@ -25,6 +25,7 @@ def index():
 def login():
     msg = ''
     if request.method == 'POST' and 'username' in request.form and 'password' in request.form:
+        time.sleep(1)
         username, password = request.form['username'], request.form['password']
         if username and not db.exists(username):
             msg = 'Login does not exist'
@@ -35,14 +36,13 @@ def login():
             session['username'] = db.hget(username, 'username')
             return redirect(url_for('home'))
         else:
-            time.sleep(3)
             msg = 'Incorrect username/password!'
     return render_template('index.html', msg=msg)
 
 
 policy = PasswordPolicy.from_names(
     length=8,  # min length: 8
-    uppercase=1,  # need min. 2 uppercase letters
+    uppercase=1,  # need min. 1 uppercase letters
     numbers=2,  # need min. 2 digits
     special=2,  # need min. 2 special characters
 )
