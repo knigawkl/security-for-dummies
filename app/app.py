@@ -149,12 +149,13 @@ def get_notes():
     for id in db_resp:
         receivers = db.hget(id, 'receivers')
         if receivers == '*':
-            notes.append(db.hget(id, 'note'))
+            notes.append({'note': db.hget(id, 'note'), 'author': db.hget(id, 'author'),
+                          'receivers': '*'})
         else:
             receivers = receivers.split(',')
             if user in receivers:
-                #notes.append(db.hget(id, 'note'))
-                notes.append({'note': db.hget(id, 'note'), 'author': db.hget(id, 'author')})
+                notes.append({'note': db.hget(id, 'note'), 'author': db.hget(id, 'author'),
+                              'receivers': db.hget(id, 'receivers')})
     return notes
 
 

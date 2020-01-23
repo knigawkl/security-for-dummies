@@ -20,7 +20,7 @@
 </form>
 <ul>
 {% for note in notes %}
-    <li>{{ note }}</li>
+    <li><i>"{{ note['note'] }}"</i> ~{{ note['author'] }} to {{ note['receivers'] }}</li>
 {% endfor %}
 </ul>
 {% endblock %}
