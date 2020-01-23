@@ -13,7 +13,7 @@ app.secret_key = 'bvoeqwghfelwhfjoilw'
 db = redis.Redis(host='redis', port=6379, decode_responses=True)
 
 
-db.flushdb()  # uncomment in order to flush the database
+# db.flushdb()  # uncomment in order to flush the database
 
 
 @app.route('/')
@@ -133,7 +133,7 @@ def home():
 
             if not re.match('^[a-zA-Z0-9 ]{1,200}$', note):
                 msg = 'Invalid note! You can only use letters, digits and spaces.'
-                return render_template('register.html', msg=msg)
+                return render_template('home.html', username=session['username'], notes=notes, msg=msg)
 
             id = str(uuid.uuid1())
             db.hset(id, 'id', id)
